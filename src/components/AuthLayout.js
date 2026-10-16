@@ -12,7 +12,7 @@ export default function AuthLayout({ title, subtitle, children }) {
 
       <section className={styles.brand}>
         {/* Export your logo from Figma and save it as public/logo.png */}
-        <img src="/dorothy.png" alt="Dorothy's Kitchen" className={styles.logo} />
+        <img src="/images/dorothy.png" alt="Dorothy's Kitchen" className={styles.logo} />
       </section>
 
       <section className={styles.card}>
