@@ -1,5 +1,5 @@
 import Link from "next/link";
-import StaffLayout, { Icon, Status } from "../../components/StaffLayout";
+import { Icon, Status } from "../../components/StaffLayout";
 import s from "../../styles/StaffLayout.module.css";
 
 const CURRENCY = "₱";
@@ -44,7 +44,7 @@ export default function Dashboard() {
     .slice(0, 3);
 
   return (
-    <StaffLayout active="dashboard" title="Dashboard" subtitle="Welcome back! Here's an overview of your catering business.">
+    <>
       <section className={s.stats} aria-label="Summary">
         {stats.map(([icon, label, value]) => (
           <div key={label} className={s.stat}>
@@ -80,6 +80,13 @@ export default function Dashboard() {
           </ul>
         )}
       </section>
-    </StaffLayout>
+    </>
   );
 }
+
+// Picked up by _app.js, which renders the persistent sidebar around this page
+Dashboard.layout = {
+  active: "dashboard",
+  title: "Dashboard",
+  subtitle: "Welcome back! Here's an overview of your catering business.",
+};

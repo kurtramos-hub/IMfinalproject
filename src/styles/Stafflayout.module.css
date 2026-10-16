@@ -1,10 +1,9 @@
 .shell{--gold:#cfae2e;--panel:#161616;--raise:#1f1f1f;--line:#2d2d2d;--text:#ececec;--muted:#9a9a9a;display:flex;min-height:100vh;background:#000;color:var(--text);font:13px/1.4 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
 
-/* Sidebar */
-/* Sidebar: closed by default, opens while the mouse is over it */
-.sidebar{position:fixed;top:0;left:0;z-index:20;height:100vh;width:64px;overflow:hidden;display:flex;flex-direction:column;gap:4px;padding:16px 13px;background:var(--panel);border-right:1px solid var(--line);transition:width .2s}
-.sidebar:hover,.sidebar:focus-within{width:220px}
-.brand,.item{display:flex;align-items:center;gap:14px;width:100%;padding:10px;border:0;border-radius:8px;background:none;color:var(--muted);font:inherit;text-align:left;text-decoration:none;white-space:nowrap;cursor:pointer}
+/* Sidebar: closed by default, opens smoothly while the mouse is over it */
+.sidebar{position:fixed;top:0;left:0;z-index:20;height:100vh;width:64px;overflow:hidden;display:flex;flex-direction:column;gap:4px;padding:16px 13px;background:var(--panel);border-right:1px solid var(--line);box-shadow:0 0 0 rgba(0,0,0,0);transition:width .35s cubic-bezier(.4,0,.2,1),box-shadow .35s ease;will-change:width}
+.sidebar:hover,.sidebar:focus-within{width:220px;box-shadow:8px 0 24px rgba(0,0,0,.5)}
+.brand,.item{display:flex;align-items:center;gap:14px;width:100%;padding:10px;border:0;border-radius:8px;background:none;color:var(--muted);font:inherit;text-align:left;text-decoration:none;white-space:nowrap;cursor:pointer;transition:background-color .2s ease,color .2s ease}
 .brand{gap:10px;padding:0;color:var(--text);cursor:default}
 .logo{width:38px;height:38px;flex-shrink:0;border-radius:50%;border:1px solid #3a3a3a;background:#000 url("/images/1.png") center/contain no-repeat}
 .brandText b{display:block;color:var(--gold);font-size:13px}
@@ -16,10 +15,18 @@
 .user{padding:4px 10px 10px;white-space:nowrap}
 .user b{display:block;font-size:12px}
 .user small{font-size:10px;color:var(--muted)}
-.label,.brandText,.user{display:none}
-.sidebar:hover .label,.sidebar:focus-within .label{display:inline}
-.sidebar:hover .brandText,.sidebar:focus-within .brandText,.sidebar:hover .user,.sidebar:focus-within .user{display:block}
+
+/* Text fades out quickly when closing, and fades in just after the width starts growing */
+.label,.brandText,.user{white-space:nowrap;opacity:0;transition:opacity .12s ease}
+.sidebar:hover .label,.sidebar:focus-within .label,
+.sidebar:hover .brandText,.sidebar:focus-within .brandText,
+.sidebar:hover .user,.sidebar:focus-within .user{opacity:1;transition:opacity .2s ease .12s}
+
 .item:focus-visible,.btn:focus-visible,.link:focus-visible,.input:focus-visible,.sq:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+@media (prefers-reduced-motion:reduce){
+  .sidebar,.brand,.item,.label,.brandText,.user{transition:none!important}
+}
 
 /* Page frame */
 .main{flex:1;min-width:0;margin-left:64px;padding:56px 32px 72px}
@@ -117,3 +124,45 @@
   .heading{gap:16px}
   .heading::before,.heading::after{width:24px}
 }
+
+/* ===== Paste at the END of StaffLayout.module.css ===== */
+
+/* Click / hover feedback on sidebar buttons */
+.item{position:relative;transition:background-color .2s ease,color .2s ease,transform .15s ease}
+.item:active{transform:scale(.96)}
+.item svg{flex-shrink:0;transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
+.item:hover svg{transform:scale(1.12)}
+.item:active svg{transform:scale(.9)}
+
+/* Gold indicator bar that grows in on the active item */
+.item::before{content:"";position:absolute;left:-13px;top:50%;width:3px;height:0;border-radius:0 3px 3px 0;background:var(--gold);transform:translateY(-50%);transition:height .3s cubic-bezier(.4,0,.2,1)}
+.active::before{height:60%}
+
+/* Page transition: content fades and slides up on every navigation */
+@keyframes pageIn{
+  from{opacity:0;transform:translateY(12px)}
+  to{opacity:1;transform:none}
+}
+.wrap{animation:pageIn .4s cubic-bezier(.2,.7,.2,1) both}
+
+/* Dashboard cards appear one after another */
+.stat{animation:pageIn .45s cubic-bezier(.2,.7,.2,1) both}
+.stat:nth-child(2){animation-delay:.06s}
+.stat:nth-child(3){animation-delay:.12s}
+.stat:nth-child(4){animation-delay:.18s}
+.panel{animation:pageIn .45s cubic-bezier(.2,.7,.2,1) .2s both}
+
+@media (prefers-reduced-motion:reduce){
+  .wrap,.stat,.panel{animation:none}
+  .item:active,.item:hover svg,.item:active svg{transform:none}
+}
+
+/* Fade-out when leaving a page (must come AFTER the .wrap rule above) */
+@keyframes pageOut{
+  to{opacity:0;transform:translateY(-8px)}
+}
+.leaving{animation:pageOut .18s ease forwards;pointer-events:none}
+
+/* Keeps the sidebar open (same look as :hover) while the mouse is on it, even right after a page change */
+.sidebar.open{width:220px;box-shadow:8px 0 24px rgba(0,0,0,.5)}
+.sidebar.open .label,.sidebar.open .brandText,.sidebar.open .user{opacity:1;transition:opacity .2s ease .12s}

@@ -1,4 +1,4 @@
-
+import { useEffect, useRef, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -43,8 +43,64 @@ export function Status({ value }) {
   return <span className={`${s.pill} ${s[value] || ""}`}>{value}</span>;
 }
 
+const LEAVE_MS = 180; // keep in sync with the .leaving animation duration in the CSS
+
+// Survives page changes (even when the layout is rebuilt), so a freshly mounted
+// sidebar can start open if the mouse was on it when the user clicked.
+let sidebarWasOpen = false;
+
 export default function StaffLayout({ active, title, subtitle, children }) {
   const router = useRouter();
+
+  // Keep the sidebar open while the mouse is on it, even across page changes
+  const [held, setHeld] = useState(sidebarWasOpen);
+  const asideRef = useRef(null);
+
+  useEffect(() => {
+    if (!sidebarWasOpen) return;
+    // A rebuilt sidebar gets no mouseenter until the mouse moves. If that first
+    // move is outside the sidebar, the mouse left in the meantime, so close it.
+    const onFirstMove = (e) => {
+      if (!asideRef.current?.contains(e.target)) {
+        sidebarWasOpen = false;
+        setHeld(false);
+      }
+      document.removeEventListener("mousemove", onFirstMove);
+    };
+    document.addEventListener("mousemove", onFirstMove);
+    return () => document.removeEventListener("mousemove", onFirstMove);
+  }, []);
+
+  // The href we are fading out towards. While it differs from the current path, the page is "leaving".
+  const [leavingTo, setLeavingTo] = useState(null);
+  const leaving = leavingTo !== null && leavingTo !== router.asPath;
+
+  // If navigation finishes or fails, make sure the page is visible again
+  useEffect(() => {
+    const reset = () => setLeavingTo(null);
+    router.events.on("routeChangeComplete", reset);
+    router.events.on("routeChangeError", reset);
+    return () => {
+      router.events.off("routeChangeComplete", reset);
+      router.events.off("routeChangeError", reset);
+    };
+  }, [router.events]);
+
+  // Fade the current page out first, then navigate
+  function go(e, href) {
+    // let ctrl/cmd/shift/middle-click behave normally (open in new tab, etc.)
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+
+    if (href === router.asPath) {
+      e.preventDefault(); // already on this page
+      return;
+    }
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return; // navigate instantly
+
+    e.preventDefault();
+    setLeavingTo(href);
+    setTimeout(() => router.push(href), LEAVE_MS);
+  }
 
   async function logout() {
     try {
@@ -58,7 +114,12 @@ export default function StaffLayout({ active, title, subtitle, children }) {
     <div className={s.shell}>
       <Head><title>{title}</title></Head>
 
-      <aside className={s.sidebar}>
+      <aside
+        ref={asideRef}
+        className={`${s.sidebar} ${held ? s.open : ""}`}
+        onMouseEnter={() => { sidebarWasOpen = true; setHeld(true); }}
+        onMouseLeave={() => { sidebarWasOpen = false; setHeld(false); }}
+      >
         <div className={s.brand}>
           <span className={s.logo} />
           <span className={s.brandText}><b>Dorothy’s Kitchen</b><small>Management</small></span>
@@ -66,12 +127,16 @@ export default function StaffLayout({ active, title, subtitle, children }) {
         <hr className={s.rule} />
 
         <nav aria-label="Staff navigation">
-          {NAV.map((n) => (
-            <Link key={n.key} href={`/staff/${n.key}`} title={n.label} aria-current={active === n.key ? "page" : undefined}
-              className={`${s.item} ${active === n.key ? s.active : ""}`}>
-              <Icon name={n.icon} /><span className={s.label}>{n.label}</span>
-            </Link>
-          ))}
+          {NAV.map((n) => {
+            const href = `/staff/${n.key}`;
+            return (
+              <Link key={n.key} href={href} title={n.label} onClick={(e) => go(e, href)}
+                aria-current={active === n.key ? "page" : undefined}
+                className={`${s.item} ${active === n.key ? s.active : ""}`}>
+                <Icon name={n.icon} /><span className={s.label}>{n.label}</span>
+              </Link>
+            );
+          })}
         </nav>
 
         <div className={s.spacer} />
@@ -83,7 +148,8 @@ export default function StaffLayout({ active, title, subtitle, children }) {
       </aside>
 
       <main className={s.main}>
-        <div className={s.wrap}>
+        {/* key replays the fade-in on every page change */}
+        <div key={router.asPath} className={`${s.wrap} ${leaving ? s.leaving : ""}`}>
           <div className={s.heading}><h1 className={s.title}>{title}</h1></div>
           <p className={s.subtitle}>{subtitle}</p>
           {children}
