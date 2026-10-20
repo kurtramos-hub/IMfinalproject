@@ -26,10 +26,10 @@ export default async function handler(req, res) {
     const passwordHash = await bcrypt.hash(password, 10);
 
     const rows = await sql`
-      INSERT INTO users (name, email, phone, password_hash)
-      VALUES (${fullName.trim()}, ${cleanEmail}, ${phone || null}, ${passwordHash})
-      RETURNING id, name, email, phone
-    `;
+  INSERT INTO users (full_name, email, phone, password_hash)
+  VALUES (${fullName.trim()}, ${cleanEmail}, ${phone || null}, ${passwordHash})
+  RETURNING id, full_name AS name, email, phone
+`;
 
     return res.status(201).json({ user: rows[0] });
   } catch (err) {

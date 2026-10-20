@@ -15,9 +15,9 @@ export default async function handler(req, res) {
 
   try {
     const rows = await sql`
-      SELECT id, name, email, password_hash FROM users
-      WHERE email = ${email.toLowerCase()}
-    `;
+  SELECT id, full_name AS name, email, password_hash FROM users
+  WHERE email = ${email.toLowerCase()}
+`;
     const user = rows[0];
 
     const valid = user && (await bcrypt.compare(password, user.password_hash));
