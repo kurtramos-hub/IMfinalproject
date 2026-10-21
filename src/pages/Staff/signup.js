@@ -45,7 +45,7 @@ export default function StaffSignup() {
         setError(data.message);
         return;
       }
-      router.push("/staff/login");
+      router.push("/Staff/login");
     } catch {
       setError("Can't reach the server. Try again.");
     }
@@ -65,7 +65,7 @@ export default function StaffSignup() {
       </form>
 
       <p className={styles.switch}>
-        Already have a staff account? <Link href="/staff/login">Log in</Link>
+        Already have a staff account? <Link href="/Staff/login">Log in</Link>
       </p>
     </AuthLayout>
   );

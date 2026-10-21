@@ -43,7 +43,7 @@ export default function StaffLogin() {
       </form>
 
       <p className={styles.switch}>
-        New staff member? <Link href="/staff/signup">Sign up with your PIN</Link>
+        New staff member? <Link href="/Staff/signup">Sign up with your PIN</Link>
       </p>
     </AuthLayout>
   );
