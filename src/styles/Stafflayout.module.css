@@ -166,3 +166,225 @@
 /* Keeps the sidebar open (same look as :hover) while the mouse is on it, even right after a page change */
 .sidebar.open{width:220px;box-shadow:8px 0 24px rgba(0,0,0,.5)}
 .sidebar.open .label,.sidebar.open .brandText,.sidebar.open .user{opacity:1;transition:opacity .2s ease .12s}
+
+
+/* Menu CRUD forms and actions */
+.menuHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.menuHeader .section {
+  margin-top: 24px;
+}
+
+.menuForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 600px;
+  margin: 0 24px 28px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+
+.menuForm h3 {
+  margin: 0 0 8px;
+  color: var(--gold);
+  font-size: 15px;
+}
+
+.formLabel {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.menuForm .input {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+}
+
+.menuTextarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #111;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  resize: vertical;
+}
+
+.menuTextarea:focus {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.smallBtn,
+.secondaryBtn,
+.deleteBtn {
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.smallBtn {
+  background: #30290f;
+  color: var(--gold);
+  border-color: #66551e;
+}
+
+.smallBtn:hover {
+  background: var(--gold);
+  color: #111;
+}
+
+.secondaryBtn {
+  background: #292929;
+  color: var(--text);
+}
+
+.secondaryBtn:hover {
+  background: #3a3a3a;
+}
+
+.deleteBtn {
+  background: #351919;
+  color: #ffaaaa;
+  border-color: #693232;
+}
+
+.deleteBtn:hover {
+  background: #632626;
+  color: #fff;
+}
+
+.tileCard {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.tileCard .tile {
+  overflow-wrap: anywhere;
+  border: 0;
+  background: transparent;
+}
+
+.messageError,
+.messageSuccess {
+  margin: 16px 0;
+  padding: 12px 16px;
+  border-radius: 7px;
+  font-size: 12px;
+}
+
+.messageError {
+  border: 1px solid #693232;
+  background: #291414;
+  color: #ffaaaa;
+}
+
+.messageSuccess {
+  border: 1px solid #315a31;
+  background: #142514;
+  color: #a6e6a0;
+}
+
+@media (max-width: 700px) {
+  .menuForm {
+    margin-right: 0;
+    margin-left: 0;
+    padding: 16px;
+  }
+
+  .menuHeader {
+    align-items: baseline;
+  }
+}
+
+
+.categoryOpenBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  min-height: 120px;
+  padding: 20px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 10px;
+  background: rgba(212, 175, 55, 0.06);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.categoryOpenBtn:hover {
+  border-color: #d4af37;
+  background: rgba(212, 175, 55, 0.12);
+}
+
+.categoryCardTitle {
+  display: block;
+  width: 100%;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.categoryCardCount {
+  display: block;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  opacity: 0.8;
+}
+
+.categoryCardHint {
+  display: block;
+  margin-top: 2px;
+  color: #d4af37;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.categoryDetail {
+  margin-top: 20px;
+}
+
+.categoryDetail .menuHeader {
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}

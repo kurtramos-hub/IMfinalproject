@@ -16,7 +16,7 @@ export default function StaffLogin() {
     setError("");
 
     try {
-      const res = await fetch("/api/staff/login", {
+      const res = await fetch("/api/Staff/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -27,7 +27,7 @@ export default function StaffLogin() {
         setError(data.message);
         return;
       }
-      router.push("/staff/dashboard");
+      router.push("/Staff/dashboard");
     } catch {
       setError("Can't reach the server. Try again.");
     }

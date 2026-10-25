@@ -104,9 +104,9 @@ export default function StaffLayout({ active, title, subtitle, children }) {
 
   async function logout() {
     try {
-      await fetch("/api/staff/logout", { method: "POST" });
+      await fetch("/api/Staff/logout", { method: "POST" });
     } finally {
-      router.push("/staff/login");
+      router.push("/Staff/login");
     }
   }
 
@@ -128,7 +128,7 @@ export default function StaffLayout({ active, title, subtitle, children }) {
 
         <nav aria-label="Staff navigation">
           {NAV.map((n) => {
-            const href = `/staff/${n.key}`;
+            const href = `/Staff/${n.key}`;
             return (
               <Link key={n.key} href={href} title={n.label} onClick={(e) => go(e, href)}
                 aria-current={active === n.key ? "page" : undefined}

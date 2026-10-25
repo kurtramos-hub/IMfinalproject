@@ -28,7 +28,7 @@ export default function StaffSignup() {
     setError("");
 
     try {
-      const res = await fetch("/api/staff/signup", {
+      const res = await fetch("/api/Staff/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

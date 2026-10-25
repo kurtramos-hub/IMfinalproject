@@ -58,7 +58,7 @@ export default function Dashboard() {
       <section className={`${s.panel} ${s.narrow}`} style={{ minHeight: 380 }}>
         <div className={s.panelHead}>
           <h2>Upcoming Bookings</h2>
-          <Link href="/staff/bookings" className={s.link} style={{ textDecoration: "none" }}>View All</Link>
+          <Link href="/Staff/bookings" className={s.link} style={{ textDecoration: "none" }}>View All</Link>
         </div>
 
         {upcoming.length === 0 ? (
