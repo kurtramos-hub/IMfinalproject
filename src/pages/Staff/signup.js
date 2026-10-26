@@ -28,7 +28,7 @@ export default function StaffSignup() {
     setError("");
 
     try {
-      const res = await fetch("/api/Staff/signup", {
+      const res = await fetch("/api/staff/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -45,7 +45,7 @@ export default function StaffSignup() {
         setError(data.message);
         return;
       }
-      router.push("/Staff/login");
+      router.push("/staff/login");
     } catch {
       setError("Can't reach the server. Try again.");
     }
@@ -65,7 +65,7 @@ export default function StaffSignup() {
       </form>
 
       <p className={styles.switch}>
-        Already have a staff account? <Link href="/Staff/login">Log in</Link>
+        Already have a staff account? <Link href="/staff/login">Log in</Link>
       </p>
     </AuthLayout>
   );
