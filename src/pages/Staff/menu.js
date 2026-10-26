@@ -1,5 +1,4 @@
-
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import StaffLayout from "../../components/StaffLayout";
 import s from "../../styles/StaffLayout.module.css";
 
@@ -26,10 +25,20 @@ export default function Menu() {
   const [editingItem, setEditingItem] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
 
+  // UI-only state
+  const [tab, setTab] = useState("packages");
+  const [showPackageForm, setShowPackageForm] = useState(false);
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [itemSearch, setItemSearch] = useState("");
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
+  const packageFormRef = useRef(null);
+  const categoryFormRef = useRef(null);
+  const itemFormRef = useRef(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -48,17 +57,14 @@ export default function Menu() {
         !categoryResponse.ok ||
         !menuResponse.ok
       ) {
-        throw new Error(
-          "Failed to load menu data from the database."
-        );
+        throw new Error("Failed to load menu data from the database.");
       }
 
-      const [packageData, categoryData, menuData] =
-        await Promise.all([
-          packageResponse.json(),
-          categoryResponse.json(),
-          menuResponse.json(),
-        ]);
+      const [packageData, categoryData, menuData] = await Promise.all([
+        packageResponse.json(),
+        categoryResponse.json(),
+        menuResponse.json(),
+      ]);
 
       setPackages(packageData);
       setCategories(categoryData);
@@ -73,6 +79,21 @@ export default function Menu() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Success messages disappear on their own
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = setTimeout(() => setNotice(""), 4000);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
+  function scrollTo(ref) {
+    setTimeout(
+      () =>
+        ref.current?.scrollIntoView({ behavior: "smooth", block: "center" }),
+      50
+    );
+  }
 
   async function requestApi(url, method, body) {
     const response = await fetch(url, {
@@ -143,6 +164,7 @@ export default function Menu() {
 
       setPackageForm(emptyPackage);
       setEditingPackage(null);
+      setShowPackageForm(false);
       await loadData();
     } catch (err) {
       setError(err.message || "Unable to save the package.");
@@ -151,32 +173,38 @@ export default function Menu() {
     }
   }
 
+  function startAddPackage() {
+    setEditingPackage(null);
+    setPackageForm(emptyPackage);
+    setShowPackageForm(true);
+    setError("");
+    setNotice("");
+    scrollTo(packageFormRef);
+  }
+
   function startEditPackage(pkg) {
     setEditingPackage(pkg);
 
     setPackageForm({
       name: pkg.name,
       price: String(pkg.price),
-      items: Array.isArray(pkg.items)
-        ? pkg.items.join("\n")
-        : "",
+      items: Array.isArray(pkg.items) ? pkg.items.join("\n") : "",
     });
 
+    setShowPackageForm(true);
     setError("");
     setNotice("");
+    scrollTo(packageFormRef);
   }
 
   function cancelPackageEdit() {
     setEditingPackage(null);
     setPackageForm(emptyPackage);
+    setShowPackageForm(false);
   }
 
   async function deletePackage(pkg) {
-    if (
-      !window.confirm(
-        `Delete catering package "${pkg.name}"?`
-      )
-    ) {
+    if (!window.confirm(`Delete catering package "${pkg.name}"?`)) {
       return;
     }
 
@@ -233,6 +261,7 @@ export default function Menu() {
 
       setCategoryName("");
       setEditingCategory(null);
+      setShowCategoryForm(false);
       await loadData();
     } catch (err) {
       setError(err.message || "Unable to save category.");
@@ -241,16 +270,28 @@ export default function Menu() {
     }
   }
 
+  function startAddCategory() {
+    setEditingCategory(null);
+    setCategoryName("");
+    setShowCategoryForm(true);
+    setError("");
+    setNotice("");
+    scrollTo(categoryFormRef);
+  }
+
   function startEditCategory(category) {
     setEditingCategory(category);
     setCategoryName(category.name);
+    setShowCategoryForm(true);
     setError("");
     setNotice("");
+    scrollTo(categoryFormRef);
   }
 
   function cancelCategoryEdit() {
     setEditingCategory(null);
     setCategoryName("");
+    setShowCategoryForm(false);
   }
 
   async function deleteCategory(category) {
@@ -292,9 +333,7 @@ export default function Menu() {
   function resetItemForm() {
     setEditingItem(null);
     setItemName("");
-    setItemCategoryId(
-      selectedCategory ? String(selectedCategory.id) : ""
-    );
+    setItemCategoryId(selectedCategory ? String(selectedCategory.id) : "");
   }
 
   async function saveMenuItem(event) {
@@ -345,18 +384,15 @@ export default function Menu() {
   function startEditItem(item) {
     setEditingItem(item);
     setItemName(item.name);
-    setItemCategoryId(
-      item.category_id ? String(item.category_id) : ""
-    );
+    setItemCategoryId(item.category_id ? String(item.category_id) : "");
 
     setError("");
     setNotice("");
+    scrollTo(itemFormRef);
   }
 
   async function deleteMenuItem(item) {
-    if (
-      !window.confirm(`Delete menu item "${item.name}"?`)
-    ) {
+    if (!window.confirm(`Delete menu item "${item.name}"?`)) {
       return;
     }
 
@@ -381,13 +417,47 @@ export default function Menu() {
     }
   }
 
-  const visibleItems = selectedCategory
-    ? menuItems.filter(
-        (item) =>
-          Number(item.category_id) ===
-          Number(selectedCategory.id)
-      )
-    : [];
+  function openCategory(category) {
+    setSelectedCategory(category);
+    setItemCategoryId(String(category.id));
+    setEditingItem(null);
+    setItemName("");
+    setItemSearch("");
+    setError("");
+    setNotice("");
+  }
+
+  function closeCategory() {
+    setSelectedCategory(null);
+    resetItemForm();
+    setItemSearch("");
+    setError("");
+    setNotice("");
+  }
+
+  const itemCounts = useMemo(() => {
+    const counts = {};
+    menuItems.forEach((item) => {
+      const key = Number(item.category_id);
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  }, [menuItems]);
+
+  const visibleItems = useMemo(() => {
+    if (!selectedCategory) return [];
+    const term = itemSearch.trim().toLowerCase();
+
+    return menuItems.filter(
+      (item) =>
+        Number(item.category_id) === Number(selectedCategory.id) &&
+        (!term || item.name.toLowerCase().includes(term))
+    );
+  }, [menuItems, selectedCategory, itemSearch]);
+
+  const categoryItemTotal = selectedCategory
+    ? itemCounts[Number(selectedCategory.id)] || 0
+    : 0;
 
   return (
     <StaffLayout
@@ -411,369 +481,423 @@ export default function Menu() {
         <p className={s.empty}>Loading menu data...</p>
       ) : (
         <>
-          {/* CATERING PACKAGES */}
-
-          <div className={s.menuHeader}>
-            <h2 className={s.section}>Catering Packages</h2>
-            <span className={s.muted}>
-              {packages.length} package(s)
-            </span>
-          </div>
-
-          <form className={s.menuForm} onSubmit={savePackage}>
-            <h3>
-              {editingPackage
-                ? "Edit Catering Package"
-                : "Add Catering Package"}
-            </h3>
-
-            <label className={s.formLabel} htmlFor="packageName">
-              Package Name
-            </label>
-
-            <input
-              id="packageName"
-              className={s.input}
-              placeholder="e.g. SET A"
-              value={packageForm.name}
-              onChange={(e) =>
-                setPackageForm({
-                  ...packageForm,
-                  name: e.target.value,
-                })
-              }
-              maxLength={100}
-              required
-            />
-
-            <label className={s.formLabel} htmlFor="packagePrice">
-              Price per Head (₱)
-            </label>
-
-            <input
-              id="packagePrice"
-              className={s.input}
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="380"
-              value={packageForm.price}
-              onChange={(e) =>
-                setPackageForm({
-                  ...packageForm,
-                  price: e.target.value,
-                })
-              }
-              required
-            />
-
-            <label className={s.formLabel} htmlFor="packageItems">
-              Included Items (one item per line)
-            </label>
-
-            <textarea
-              id="packageItems"
-              className={s.menuTextarea}
-              placeholder={"Main course\nSoup\nDessert"}
-              rows={4}
-              value={packageForm.items}
-              onChange={(e) =>
-                setPackageForm({
-                  ...packageForm,
-                  items: e.target.value,
-                })
-              }
-            />
-
-            <div className={s.actionRow}>
-              <button
-                className={s.btn}
-                type="submit"
-                disabled={saving}
-              >
-                {saving
-                  ? "Saving..."
-                  : editingPackage
-                    ? "Save Changes"
-                    : "Add Package"}
-              </button>
-
-              {editingPackage && (
-                <button
-                  className={s.secondaryBtn}
-                  type="button"
-                  onClick={cancelPackageEdit}
-                >
-                  Cancel
-                </button>
-              )}
+          {/* SUMMARY */}
+          <div className={s.menuSummary}>
+            <div className={s.menuSummaryItem}>
+              <b>{packages.length}</b>
+              <small>Packages</small>
             </div>
-          </form>
-
-          <div className={s.grid3}>
-            {packages.map((pkg) => (
-              <div key={pkg.id} className={s.packageCard}>
-                <h3>{pkg.name}</h3>
-                <p>
-                  <span>{money(pkg.price)}</span> per head
-                </p>
-                <hr />
-
-                <details>
-                  <summary>View Details</summary>
-                  <ul>
-                    {(pkg.items || []).map((item, index) => (
-                      <li key={`${pkg.id}-${index}`}>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-
-                <div className={s.actionRow}>
-                  <button
-                    type="button"
-                    className={s.smallBtn}
-                    onClick={() => startEditPackage(pkg)}
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    type="button"
-                    className={s.deleteBtn}
-                    onClick={() => deletePackage(pkg)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
+            <div className={s.menuSummaryItem}>
+              <b>{categories.length}</b>
+              <small>Categories</small>
+            </div>
+            <div className={s.menuSummaryItem}>
+              <b>{menuItems.length}</b>
+              <small>Menu items</small>
+            </div>
           </div>
 
-          {packages.length === 0 && (
-            <p className={s.empty}>
-              No catering packages yet. Add one above.
-            </p>
+          {/* TABS */}
+          <div className={s.menuTabs} role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "packages"}
+              className={`${s.menuTab} ${
+                tab === "packages" ? s.menuTabActive : ""
+              }`}
+              onClick={() => setTab("packages")}
+            >
+              Catering packages
+            </button>
+
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "menu"}
+              className={`${s.menuTab} ${
+                tab === "menu" ? s.menuTabActive : ""
+              }`}
+              onClick={() => setTab("menu")}
+            >
+              Menu items
+            </button>
+          </div>
+
+          {/* ================= CATERING PACKAGES ================= */}
+          {tab === "packages" && (
+            <section>
+              <div className={s.menuToolbar}>
+                <p className={s.muted}>
+                  Prices are per head. Click a package to see what is
+                  included.
+                </p>
+
+                {!showPackageForm && (
+                  <button
+                    type="button"
+                    className={s.btn}
+                    onClick={startAddPackage}
+                  >
+                    + Add package
+                  </button>
+                )}
+              </div>
+
+              {showPackageForm && (
+                <form
+                  ref={packageFormRef}
+                  className={s.formCard}
+                  onSubmit={savePackage}
+                >
+                  <h3>
+                    {editingPackage
+                      ? `Edit ${editingPackage.name}`
+                      : "Add catering package"}
+                  </h3>
+
+                  <div className={s.formGrid}>
+                    <div className={s.formField}>
+                      <label className={s.formLabel} htmlFor="packageName">
+                        Package name
+                      </label>
+
+                      <input
+                        id="packageName"
+                        className={s.input}
+                        placeholder="e.g. SET A"
+                        value={packageForm.name}
+                        onChange={(e) =>
+                          setPackageForm({
+                            ...packageForm,
+                            name: e.target.value,
+                          })
+                        }
+                        maxLength={100}
+                        required
+                      />
+                    </div>
+
+                    <div className={s.formField}>
+                      <label className={s.formLabel} htmlFor="packagePrice">
+                        Price per head (₱)
+                      </label>
+
+                      <input
+                        id="packagePrice"
+                        className={s.input}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="380"
+                        value={packageForm.price}
+                        onChange={(e) =>
+                          setPackageForm({
+                            ...packageForm,
+                            price: e.target.value,
+                          })
+                        }
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <label className={s.formLabel} htmlFor="packageItems">
+                    Included items (one per line)
+                  </label>
+
+                  <textarea
+                    id="packageItems"
+                    className={s.menuTextarea}
+                    placeholder={"Main course\nSoup\nDessert"}
+                    rows={5}
+                    value={packageForm.items}
+                    onChange={(e) =>
+                      setPackageForm({
+                        ...packageForm,
+                        items: e.target.value,
+                      })
+                    }
+                  />
+
+                  <div className={s.formActions}>
+                    <button
+                      className={s.secondaryBtn}
+                      type="button"
+                      onClick={cancelPackageEdit}
+                    >
+                      Cancel
+                    </button>
+
+                    <button className={s.btn} type="submit" disabled={saving}>
+                      {saving
+                        ? "Saving..."
+                        : editingPackage
+                          ? "Save changes"
+                          : "Add package"}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {packages.length > 0 ? (
+                <div className={s.pkgGrid}>
+                  {packages.map((pkg) => {
+                    const items = Array.isArray(pkg.items) ? pkg.items : [];
+
+                    return (
+                      <article key={pkg.id} className={s.pkgCard}>
+                        <header className={s.pkgCardHead}>
+                          <h3>{pkg.name}</h3>
+                          <span className={s.pkgCount}>
+                            {items.length} item{items.length === 1 ? "" : "s"}
+                          </span>
+                        </header>
+
+                        <p className={s.pkgPrice}>
+                          <strong>{money(pkg.price)}</strong>
+                          <span> per head</span>
+                        </p>
+
+                        <details className={s.pkgDetails}>
+                          <summary>View details</summary>
+
+                          {items.length > 0 ? (
+                            <ul>
+                              {items.map((item, index) => (
+                                <li key={`${pkg.id}-${index}`}>{item}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className={s.muted}>No items listed.</p>
+                          )}
+                        </details>
+
+                        <div className={s.cardActions}>
+                          <button
+                            type="button"
+                            className={s.smallBtn}
+                            onClick={() => startEditPackage(pkg)}
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            type="button"
+                            className={s.deleteBtn}
+                            onClick={() => deletePackage(pkg)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className={s.emptyCard}>
+                  <p>No catering packages yet.</p>
+                  {!showPackageForm && (
+                    <button
+                      type="button"
+                      className={s.btn}
+                      onClick={startAddPackage}
+                    >
+                      Add your first package
+                    </button>
+                  )}
+                </div>
+              )}
+            </section>
           )}
 
-          {/* MENU CATEGORIES */}
-
-          <div className={s.menuHeader}>
-            <h2 className={s.section}>Menu Categories</h2>
-            <span className={s.muted}>
-              {categories.length} categor
-              {categories.length === 1 ? "y" : "ies"}
-            </span>
-          </div>
-
-          <form className={s.menuForm} onSubmit={saveCategory}>
-            <h3>
-              {editingCategory ? "Edit Category" : "Add Category"}
-            </h3>
-
-            <label className={s.formLabel} htmlFor="categoryName">
-              Category Name
-            </label>
-
-            <input
-              id="categoryName"
-              className={s.input}
-              placeholder="e.g. Main Course"
-              value={categoryName}
-              onChange={(e) => setCategoryName(e.target.value)}
-              maxLength={100}
-              required
-            />
-
-            <div className={s.actionRow}>
-              <button
-                className={s.btn}
-                type="submit"
-                disabled={saving}
-              >
-                {saving
-                  ? "Saving..."
-                  : editingCategory
-                    ? "Save Changes"
-                    : "Add Category"}
-              </button>
-
-              {editingCategory && (
-                <button
-                  className={s.secondaryBtn}
-                  type="button"
-                  onClick={cancelCategoryEdit}
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          </form>
-
-          {!selectedCategory ? (
-            <>
-              <div className={s.grid3}>
-                {categories.map((category) => {
-                  const count = menuItems.filter(
-                    (item) =>
-                      Number(item.category_id) ===
-                      Number(category.id)
-                  ).length;
-
-                  return (
-                    <div key={category.id} className={s.pkg}>
-                      <button
-                        type="button"
-                        className={s.categoryOpenBtn}
-                        onClick={() => {
-                          setSelectedCategory(category);
-                          setItemCategoryId(
-                            String(category.id)
-                          );
-                          setEditingItem(null);
-                          setItemName("");
-                          setError("");
-                          setNotice("");
-                        }}
-                      >
-                        <span className={s.categoryCardTitle}>
-                          {category.name}
-                        </span>
-
-                        <span className={s.categoryCardCount}>
-                          {count} item{count === 1 ? "" : "s"}
-                        </span>
-
-                        <span className={s.categoryCardHint}>
-                          Click to view items →
-                        </span>
-                      </button>
-
-                      <div className={s.actionRow}>
-                        <button
-                          type="button"
-                          className={s.smallBtn}
-                          onClick={() =>
-                            startEditCategory(category)
-                          }
-                        >
-                          Edit
-                        </button>
-
-                        <button
-                          type="button"
-                          className={s.deleteBtn}
-                          onClick={() =>
-                            deleteCategory(category)
-                          }
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {categories.length === 0 && (
-                <p className={s.empty}>
-                  No categories yet. Add a category above.
+          {/* ================= MENU ITEMS ================= */}
+          {tab === "menu" && !selectedCategory && (
+            <section>
+              <div className={s.menuToolbar}>
+                <p className={s.muted}>
+                  Open a category to see and manage its items.
                 </p>
-              )}
-            </>
-          ) : (
-            <section className={s.categoryDetail}>
-              <div className={s.menuHeader}>
-                <div>
+
+                {!showCategoryForm && (
                   <button
                     type="button"
-                    className={s.secondaryBtn}
-                    onClick={() => {
-                      setSelectedCategory(null);
-                      resetItemForm();
-                      setError("");
-                      setNotice("");
-                    }}
+                    className={s.btn}
+                    onClick={startAddCategory}
                   >
-                    ← Back to Categories
+                    + Add category
                   </button>
-
-                  <h2 className={s.section}>
-                    {selectedCategory.name}
-                  </h2>
-
-                  <p className={s.muted}>
-                    {visibleItems.length} item
-                    {visibleItems.length === 1 ? "" : "s"} in this
-                    category
-                  </p>
-                </div>
+                )}
               </div>
 
-              <form className={s.menuForm} onSubmit={saveMenuItem}>
-                <h3>
-                  {editingItem ? "Edit Menu Item" : "Add Menu Item"}
-                </h3>
-
-                <label
-                  className={s.formLabel}
-                  htmlFor="itemCategory"
+              {showCategoryForm && (
+                <form
+                  ref={categoryFormRef}
+                  className={s.formCard}
+                  onSubmit={saveCategory}
                 >
-                  Category
-                </label>
+                  <h3>
+                    {editingCategory
+                      ? `Edit ${editingCategory.name}`
+                      : "Add category"}
+                  </h3>
 
-                <select
-                  id="itemCategory"
-                  className={s.input}
-                  value={itemCategoryId}
-                  onChange={(e) =>
-                    setItemCategoryId(e.target.value)
-                  }
-                  required
-                >
-                  <option value="">Select a category</option>
+                  <label className={s.formLabel} htmlFor="categoryName">
+                    Category name
+                  </label>
 
-                  {categories.map((category) => (
-                    <option
-                      key={category.id}
-                      value={category.id}
+                  <input
+                    id="categoryName"
+                    className={s.input}
+                    placeholder="e.g. Main Course"
+                    value={categoryName}
+                    onChange={(e) => setCategoryName(e.target.value)}
+                    maxLength={100}
+                    required
+                  />
+
+                  <div className={s.formActions}>
+                    <button
+                      className={s.secondaryBtn}
+                      type="button"
+                      onClick={cancelCategoryEdit}
                     >
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+                      Cancel
+                    </button>
 
-                <label
-                  className={s.formLabel}
-                  htmlFor="menuItemName"
-                >
-                  Menu Item Name
-                </label>
+                    <button className={s.btn} type="submit" disabled={saving}>
+                      {saving
+                        ? "Saving..."
+                        : editingCategory
+                          ? "Save changes"
+                          : "Add category"}
+                    </button>
+                  </div>
+                </form>
+              )}
 
-                <input
-                  id="menuItemName"
-                  className={s.input}
-                  placeholder="e.g. Chicken Adobo"
-                  value={itemName}
-                  onChange={(e) => setItemName(e.target.value)}
-                  maxLength={150}
-                  required
-                />
+              {categories.length > 0 ? (
+                <div className={s.catGrid}>
+                  {categories.map((category) => {
+                    const count = itemCounts[Number(category.id)] || 0;
 
-                <div className={s.actionRow}>
-                  <button
-                    className={s.btn}
-                    type="submit"
-                    disabled={saving}
-                  >
-                    {saving
-                      ? "Saving..."
-                      : editingItem
-                        ? "Save Changes"
-                        : "Add Menu Item"}
-                  </button>
+                    return (
+                      <div key={category.id} className={s.catCard}>
+                        <button
+                          type="button"
+                          className={s.catOpen}
+                          onClick={() => openCategory(category)}
+                        >
+                          <span className={s.catName}>{category.name}</span>
+                          <span className={s.catCount}>
+                            {count} item{count === 1 ? "" : "s"}
+                          </span>
+                        </button>
 
+                        <div className={s.cardActions}>
+                          <button
+                            type="button"
+                            className={s.smallBtn}
+                            onClick={() => startEditCategory(category)}
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            type="button"
+                            className={s.deleteBtn}
+                            onClick={() => deleteCategory(category)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className={s.emptyCard}>
+                  <p>No categories yet.</p>
+                  {!showCategoryForm && (
+                    <button
+                      type="button"
+                      className={s.btn}
+                      onClick={startAddCategory}
+                    >
+                      Add your first category
+                    </button>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* ================= CATEGORY DETAIL ================= */}
+          {tab === "menu" && selectedCategory && (
+            <section>
+              <button
+                type="button"
+                className={s.crumb}
+                onClick={closeCategory}
+              >
+                ← All categories
+              </button>
+
+              <div className={s.detailHead}>
+                <h2 className={s.section}>{selectedCategory.name}</h2>
+                <span className={s.muted}>
+                  {categoryItemTotal} item{categoryItemTotal === 1 ? "" : "s"}
+                </span>
+              </div>
+
+              <form
+                ref={itemFormRef}
+                className={s.formCard}
+                onSubmit={saveMenuItem}
+              >
+                <h3>{editingItem ? "Edit menu item" : "Add menu item"}</h3>
+
+                <div className={s.formGrid}>
+                  <div className={s.formField}>
+                    <label className={s.formLabel} htmlFor="menuItemName">
+                      Menu item name
+                    </label>
+
+                    <input
+                      id="menuItemName"
+                      className={s.input}
+                      placeholder="e.g. Chicken Adobo"
+                      value={itemName}
+                      onChange={(e) => setItemName(e.target.value)}
+                      maxLength={150}
+                      required
+                    />
+                  </div>
+
+                  <div className={s.formField}>
+                    <label className={s.formLabel} htmlFor="itemCategory">
+                      Category
+                    </label>
+
+                    <select
+                      id="itemCategory"
+                      className={s.input}
+                      value={itemCategoryId}
+                      onChange={(e) => setItemCategoryId(e.target.value)}
+                      required
+                    >
+                      <option value="">Select a category</option>
+
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className={s.formActions}>
                   {editingItem && (
                     <button
                       className={s.secondaryBtn}
@@ -783,39 +907,62 @@ export default function Menu() {
                       Cancel
                     </button>
                   )}
+
+                  <button className={s.btn} type="submit" disabled={saving}>
+                    {saving
+                      ? "Saving..."
+                      : editingItem
+                        ? "Save changes"
+                        : "Add menu item"}
+                  </button>
                 </div>
               </form>
 
-              <div className={s.grid3}>
-                {visibleItems.map((item) => (
-                  <div key={item.id} className={s.tileCard}>
-                    <div className={s.tile}>{item.name}</div>
+              {categoryItemTotal > 3 && (
+                <input
+                  type="search"
+                  className={`${s.input} ${s.itemSearch}`}
+                  placeholder="Search items in this category"
+                  aria-label="Search items in this category"
+                  value={itemSearch}
+                  onChange={(e) => setItemSearch(e.target.value)}
+                />
+              )}
 
-                    <div className={s.actionRow}>
-                      <button
-                        type="button"
-                        className={s.smallBtn}
-                        onClick={() => startEditItem(item)}
-                      >
-                        Edit
-                      </button>
+              {visibleItems.length > 0 ? (
+                <ul className={s.itemList}>
+                  {visibleItems.map((item) => (
+                    <li key={item.id} className={s.itemRow}>
+                      <span className={s.itemName}>{item.name}</span>
 
-                      <button
-                        type="button"
-                        className={s.deleteBtn}
-                        onClick={() => deleteMenuItem(item)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                      <div className={s.cardActions}>
+                        <button
+                          type="button"
+                          className={s.smallBtn}
+                          onClick={() => startEditItem(item)}
+                        >
+                          Edit
+                        </button>
 
-              {visibleItems.length === 0 && (
-                <p className={s.empty}>
-                  No menu items in this category yet. Add one above.
-                </p>
+                        <button
+                          type="button"
+                          className={s.deleteBtn}
+                          onClick={() => deleteMenuItem(item)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className={s.emptyCard}>
+                  <p>
+                    {itemSearch
+                      ? `No items match "${itemSearch}".`
+                      : "No menu items in this category yet. Add one above."}
+                  </p>
+                </div>
               )}
             </section>
           )}
