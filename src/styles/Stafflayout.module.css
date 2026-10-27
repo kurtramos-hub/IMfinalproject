@@ -246,3 +246,179 @@
   .formCard{padding:16px}
   .itemRow{flex-direction:column;align-items:flex-start}
 }
+
+/* ===== Dashboard ===== */
+
+/* Stat cards */
+.dashStats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-bottom:28px}
+.dashStat{display:flex;align-items:center;gap:14px;padding:18px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.dashStatMain{border-color:#66551e}
+.dashStatMain .dashStatBody b{color:var(--gold)}
+.dashStatIcon{display:grid;place-items:center;width:40px;height:40px;flex-shrink:0;border-radius:10px;background:#30290f;color:var(--gold)}
+.dashStatBody{display:flex;flex-direction:column;gap:2px;min-width:0}
+.dashStatBody b{font-size:20px;font-weight:600;overflow-wrap:anywhere}
+.dashStatBody span{font-size:12px}
+.dashStatBody small{font-size:10px;color:var(--muted)}
+
+/* Two-column area */
+.dashGrid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:20px;align-items:start}
+.dashGrid .panel{padding:22px}
+.dashGrid .link{text-decoration:none}
+.dashGrid .link:hover{text-decoration:underline}
+
+/* Upcoming bookings */
+.dashRow{display:flex;align-items:center;gap:14px;padding:14px;border:1px solid #333;border-radius:8px;background:var(--raise)}
+.dashDate{display:flex;flex-direction:column;align-items:center;justify-content:center;width:52px;height:56px;flex-shrink:0;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.dashDate b{font-size:18px;line-height:1;color:var(--gold)}
+.dashDate small{margin-top:4px;font-size:10px;color:var(--muted)}
+.dashInfo{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+.dashInfo b{font-size:13px}
+.dashRight{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+.dashAmount{font-size:13px;font-weight:600}
+
+/* Bookings by status */
+.dashBreak{display:flex;flex-direction:column;gap:18px;margin:0;padding:0;list-style:none}
+.dashBreakTop{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;font-size:12px}
+.dashBreakName{text-transform:capitalize;color:var(--muted)}
+.dashTrack{height:6px;border-radius:999px;background:var(--raise);overflow:hidden}
+.dashFill{height:100%;border-radius:999px}
+.fill_pending{background:#e6c84a}
+.fill_confirmed{background:#86d97a}
+.fill_completed{background:#8dbbe8}
+.fill_cancelled{background:#e88d8d}
+
+@media (max-width:700px){
+  .dashGrid{grid-template-columns:1fr}
+  .dashRow{flex-wrap:wrap}
+  .dashRight{flex-direction:row;align-items:center;width:100%;justify-content:space-between}
+}
+
+/* ===== Bookings + Dashboard CRUD ===== */
+
+/* Booking form */
+.formGrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.formCard .input{color-scheme:dark}
+.formCard .messageError{margin:0 0 4px}
+
+/* Bookings table */
+.amountCell{white-space:nowrap}
+.rowActions{display:flex;justify-content:center;gap:6px}
+.table td .rowActions .smallBtn,.table td .rowActions .deleteBtn{padding:5px 10px}
+
+/* Small status dropdown (dashboard quick change) */
+.statusSelect{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:#111;color:var(--text);font:inherit;font-size:11px;cursor:pointer}
+.statusSelect:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+/* Dashboard additions */
+.panelHeadActions{display:flex;align-items:center;gap:14px}
+.dashRow{flex-wrap:wrap}
+.dashActions{display:flex;align-items:center;justify-content:flex-end;flex-basis:100%;gap:8px;padding-top:12px;border-top:1px solid var(--line)}
+.dashMore{margin:14px 0 0;text-align:center}
+
+@media (max-width:700px){
+  .formGrid3{grid-template-columns:1fr}
+  .panelHeadActions{gap:10px}
+  .dashActions{justify-content:flex-start;flex-wrap:wrap}
+}
+
+/* ===== Bookings v2 ===== */
+
+/* Date range + sort row */
+.filterRow{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;margin-bottom:16px}
+.filterField{display:flex;flex-direction:column;gap:4px}
+.filterField .formLabel{margin-top:0}
+.filterField .input{flex:none;width:150px;color-scheme:dark}
+.filterField .sortSelect{width:210px}
+.resultCount{margin:0 0 10px}
+
+/* Status dropdown coloured like the pills */
+.statusSelect{padding:5px 8px;border-radius:999px;font-size:10px;text-transform:capitalize}
+.statusSelect.pending{background:#5a4d1c;color:#e6c84a;border-color:#7a6a2a}
+.statusSelect.confirmed{background:#2c5a27;color:#86d97a;border-color:#3d7a36}
+.statusSelect.completed{background:#2a3c52;color:#8dbbe8;border-color:#3b5472}
+.statusSelect.cancelled{background:#5a2424;color:#e88d8d;border-color:#7a3434}
+.statusSelect option{background:#161616;color:#ececec;text-transform:capitalize}
+
+/* Row details */
+.idToggle{padding:4px 6px;border:0;border-radius:6px;background:none;color:var(--gold);font:inherit;cursor:pointer;white-space:nowrap}
+.idToggle:hover{background:#262626}
+.idToggle:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.rowOpen td{background:#1a1a1a}
+.detailRow td{padding:0;background:#1a1a1a;text-align:left}
+.detailGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 24px;margin:0;padding:16px 24px 20px;border-top:1px solid var(--line)}
+.detailGrid dt{margin-bottom:4px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.detailGrid dd{margin:0;font-size:12px;overflow-wrap:anywhere}
+.detailNotes{grid-column:1 / -1}
+.detailNotes dd{white-space:pre-wrap}
+
+@media (max-width:700px){
+  .filterField,.filterField .input,.filterField .sortSelect{width:100%}
+  .filterRow{flex-direction:column;align-items:stretch}
+  .detailGrid{grid-template-columns:1fr;padding:14px 16px 18px}
+}
+
+/* ===== Calendar ===== */
+
+/* Header */
+.navBtns{align-items:center}
+.todayBtn{height:30px;padding:0 12px;border:1px solid var(--line);border-radius:6px;background:var(--raise);color:var(--text);font:inherit;font-size:11px;cursor:pointer;transition:background-color .2s ease}
+.todayBtn:hover,.sq:hover{background:#2a2a2a}
+.todayBtn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.calSub{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 16px;font-size:12px;color:var(--muted)}
+.calToggle{display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap}
+.calToggle input{accent-color:var(--gold)}
+
+/* Day cells (buttons) */
+.calBlank{min-height:92px}
+.calDay{display:flex;flex-direction:column;align-items:stretch;min-width:0;min-height:92px;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--text);font:inherit;font-size:12px;text-align:left;cursor:pointer;transition:border-color .2s ease,background-color .2s ease}
+.calDay:hover{border-color:#66551e}
+.calDay:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.calDayToday{border-color:var(--gold);background:#1d1a0c}
+.calDaySelected{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
+.calDayNum{font-weight:600}
+.calDayToday .calDayNum{color:var(--gold)}
+
+/* Booking chips (colours come from the .pending/.confirmed/... classes) */
+.calChips{display:flex;flex-direction:column;min-width:0}
+.calChip{display:block;margin-top:4px;padding:2px 6px;border-radius:4px;font-size:10px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.calMore{margin-top:4px;font-size:10px;color:var(--muted)}
+
+/* Selected day details */
+.calDetail{margin-top:20px}
+.calAmount{font-size:13px;font-weight:600}
+
+@media (max-width:700px){
+  .week,.days{gap:4px}
+  .calSub{flex-direction:column;align-items:flex-start;gap:8px}
+  .calBlank,.calDay{min-height:52px}
+  .calDay{padding:6px}
+  .calChips{flex-direction:row;flex-wrap:wrap;gap:3px;margin-top:4px}
+  .calChip{width:8px;height:8px;margin-top:0;padding:0;border-radius:999px;font-size:0}
+  .calMore{display:none}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .calDay,.todayBtn{transition:none}
+}
+
+/* ===== Booking packages ===== */
+
+.amountHint{display:block;margin-top:2px;font-size:11px;line-height:1.5;color:var(--muted)}
+.amountHint .link{font-size:11px}
+.table td small{margin-top:2px}
+
+/* ===== Customers ===== */
+
+.custPanel{min-height:440px}
+
+/* Recent bookings inside an expanded card */
+.custHistoryTitle{margin:16px 0 8px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.custHistory{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.custHistory li{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:6px;background:var(--panel);font-size:11px}
+.custNone{margin:0}
+
+/* Edit / Delete inside an expanded card */
+.custActions{display:flex;gap:8px;margin-top:14px}
+
+/* Search box: keeps its width on the form pages too */
+.search{color-scheme:dark}
