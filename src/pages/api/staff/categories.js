@@ -1,7 +1,9 @@
-
 import pool from "../../../lib/staffDb";
+import { requireStaff } from "../../../lib/auth";
 
 export default async function handler(req, res) {
+  if (!requireStaff(req, res)) return;
+
   try {
     if (req.method === "GET") {
       const result = await pool.query(`

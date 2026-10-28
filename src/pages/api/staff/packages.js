@@ -1,8 +1,13 @@
 
 import pool from "../../../lib/staffDb";
+import { requireStaff } from "../../../lib/auth";
+
 
 export default async function handler(req, res) {
   try {
+    const staff = requireStaff(req, res);
+    if (!staff) return;
+
     if (req.method === "GET") {
       const result = await pool.query(
         "SELECT * FROM catering_packages ORDER BY id ASC"

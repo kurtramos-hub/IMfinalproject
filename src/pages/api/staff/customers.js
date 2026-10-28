@@ -1,4 +1,5 @@
-import { pool, requireStaff } from "../../../lib/bookingsDb";
+import { pool } from "../../../lib/bookingsDb";
+import { requireStaff } from "../../../lib/auth";
 
 const SELECT = `
   SELECT

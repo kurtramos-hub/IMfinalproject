@@ -27,7 +27,7 @@ export default function StaffLogin() {
         setError(data.message);
         return;
       }
-      router.push("/staff/dashboard");
+      router.push("/Staff/dashboard");
     } catch {
       setError("Can't reach the server. Try again.");
     }
@@ -43,7 +43,7 @@ export default function StaffLogin() {
       </form>
 
       <p className={styles.switch}>
-        New staff member? <Link href="/staff/signup">Sign up with your PIN</Link>
+        New staff member? <Link href="/Staff/signup">Sign up with your PIN</Link>
       </p>
     </AuthLayout>
   );

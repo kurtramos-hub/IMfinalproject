@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { Icon, Status } from "../../components/StaffLayout";
-import BookingForm from "../../components/BookingForm";
+import BookingForm from "../../components/Bookingform";
 import s from "../../styles/StaffLayout.module.css";
 import useBookings from "../../lib/useBookings";
 import { STATUSES, dateParts, money } from "../../lib/bookingsClient";
@@ -68,7 +68,7 @@ export default function Dashboard() {
 
   const upcomingAll = bookings
     .filter((b) => b.status === "pending" || b.status === "confirmed")
-    .sort((a, b) => a.date.localeCompare(b.date));
+    .sort((a, b) => String(a?.date || "").localeCompare(String(b?.date || "")));
   const upcoming = upcomingAll.slice(0, 4);
 
   return (

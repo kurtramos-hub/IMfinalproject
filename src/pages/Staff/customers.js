@@ -174,10 +174,10 @@ export default function Customers() {
     const map = {};
 
     [...bookings]
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .forEach((b) => {
-        map[b.customer_id] = [...(map[b.customer_id] || []), b];
-      });
+  .sort((a, b) => String(b?.date || "").localeCompare(String(a?.date || "")))
+  .forEach((b) => {
+    map[b.customer_id] = [...(map[b.customer_id] || []), b];
+  });
 
     return map;
   }, [bookings]);

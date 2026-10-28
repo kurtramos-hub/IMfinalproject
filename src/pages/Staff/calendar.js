@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import StaffLayout, { Status } from "../../components/StaffLayout";
 import s from "../../styles/StaffLayout.module.css";
@@ -6,6 +7,9 @@ import useBookings from "../../lib/useBookings";
 import { money } from "../../lib/bookingsClient";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = Array.from({ length: 12 }, (_, i) =>
+  new Date(2000, i, 1).toLocaleDateString("en-US", { month: "long" })
+);
 const MAX_CHIPS = 2;
 
 const pad = (n) => String(n).padStart(2, "0");
@@ -20,6 +24,11 @@ export default function Calendar() {
   const [selected, setSelected] = useState("");
   const [showCancelled, setShowCancelled] = useState(false);
 
+  // Floating month window
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
+  const currentMonthRef = useRef(null);
+
   useEffect(() => {
     const now = new Date();
     const key = keyOf(now.getFullYear(), now.getMonth(), now.getDate());
@@ -28,6 +37,22 @@ export default function Calendar() {
     setTodayKey(key);
     setSelected(key);
   }, []);
+
+  // Escape closes the window; focus moves into it when it opens
+  useEffect(() => {
+    if (!pickerOpen) return;
+
+    const onKey = (e) => {
+      if (e.key === "Escape") setPickerOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    const t = setTimeout(() => currentMonthRef.current?.focus(), 0);
+
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      clearTimeout(t);
+    };
+  }, [pickerOpen]);
 
   const byDate = useMemo(() => {
     const map = {};
@@ -39,6 +64,18 @@ export default function Calendar() {
 
     return map;
   }, [bookings, showCancelled]);
+
+  // Bookings per month, e.g. "2026-10" -> 3
+  const monthCounts = useMemo(() => {
+    const counts = {};
+
+    Object.entries(byDate).forEach(([date, list]) => {
+      const k = date.slice(0, 7);
+      counts[k] = (counts[k] || 0) + list.length;
+    });
+
+    return counts;
+  }, [byDate]);
 
   if (!view) {
     return (
@@ -77,6 +114,9 @@ export default function Calendar() {
       })
     : "";
 
+  const todayYear = Number(todayKey.slice(0, 4));
+  const todayMonth = Number(todayKey.slice(5, 7)) - 1;
+
   function move(step) {
     const d = new Date(view.y, view.m + step, 1);
     setView({ y: d.getFullYear(), m: d.getMonth() });
@@ -88,6 +128,98 @@ export default function Calendar() {
     setView({ y: now.getFullYear(), m: now.getMonth() });
     setSelected(keyOf(now.getFullYear(), now.getMonth(), now.getDate()));
   }
+
+  function openPicker() {
+    setPickerYear(view.y);
+    setPickerOpen(true);
+  }
+
+  function pickMonth(m) {
+    setView({ y: pickerYear, m });
+    setSelected("");
+    setPickerOpen(false);
+  }
+
+  function pickThisMonth() {
+    goToday();
+    setPickerOpen(false);
+  }
+
+  const monthWindow = (
+    <div className="mw-backdrop" onMouseDown={() => setPickerOpen(false)}>
+      <div
+        className="mw-card"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Choose a month"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="mw-top">
+          <h3>Select month</h3>
+          <button
+            type="button"
+            className="mw-close"
+            onClick={() => setPickerOpen(false)}
+            aria-label="Close"
+          >
+            &times;
+          </button>
+        </div>
+
+        <div className="mw-year">
+          <button
+            type="button"
+            className="mw-arrow"
+            onClick={() => setPickerYear((y) => y - 1)}
+            aria-label="Previous year"
+          >
+            &lsaquo;
+          </button>
+
+          <b>{pickerYear}</b>
+
+          <button
+            type="button"
+            className="mw-arrow"
+            onClick={() => setPickerYear((y) => y + 1)}
+            aria-label="Next year"
+          >
+            &rsaquo;
+          </button>
+        </div>
+
+        <div className="mw-grid">
+          {MONTHS.map((name, m) => {
+            const count = monthCounts[`${pickerYear}-${pad(m + 1)}`] || 0;
+            const isCurrent = pickerYear === view.y && m === view.m;
+            const isToday = pickerYear === todayYear && m === todayMonth;
+
+            return (
+              <button
+                key={name}
+                type="button"
+                ref={isCurrent ? currentMonthRef : null}
+                className={`mw-month${isCurrent ? " current" : ""}${isToday ? " today" : ""}`}
+                onClick={() => pickMonth(m)}
+                aria-pressed={isCurrent}
+              >
+                <span className="mw-name">{name}</span>
+                <span className="mw-count">
+                  {count ? `${count} booking${count === 1 ? "" : "s"}` : "No bookings"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mw-foot">
+          <button type="button" className="mw-today" onClick={pickThisMonth}>
+            Go to today
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <StaffLayout
@@ -103,7 +235,17 @@ export default function Calendar() {
 
       <section className={s.panel}>
         <div className={s.calHead}>
-          <h2>{label}</h2>
+          <h2>
+            <button
+              type="button"
+              className="month-title"
+              onClick={openPicker}
+              aria-haspopup="dialog"
+              title="Choose a month"
+            >
+              {label} <span aria-hidden="true">&#9662;</span>
+            </button>
+          </h2>
 
           <div className={s.navBtns}>
             <button
@@ -233,7 +375,7 @@ export default function Calendar() {
           <div className={s.panelHead}>
             <h2>{selectedLabel}</h2>
 
-            <Link href="/Staff/bookings" className={s.link}>
+            <Link href="/staff/bookings" className={s.link}>
               Manage bookings
             </Link>
           </div>
@@ -262,6 +404,197 @@ export default function Calendar() {
           )}
         </section>
       )}
+
+      {/* Rendered on document.body so nothing can clip it */}
+      {pickerOpen && typeof document !== "undefined" && createPortal(monthWindow, document.body)}
+
+      <style jsx global>{`
+        .month-title {
+          padding: 4px 10px;
+          margin: -4px -10px;
+          border: 1px solid transparent;
+          border-radius: 8px;
+          background: none;
+          color: inherit;
+          font: inherit;
+          cursor: pointer;
+          transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+        }
+        .month-title span {
+          font-size: 0.6em;
+          vertical-align: middle;
+          color: #9a9a9a;
+        }
+        .month-title:hover {
+          background: #1f1f1f;
+          border-color: #cfae2e;
+        }
+        .month-title:focus-visible {
+          outline: 2px solid #cfae2e;
+          outline-offset: 2px;
+        }
+
+        .mw-backdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 1000;
+          display: grid;
+          place-items: center;
+          padding: 16px;
+          background: rgba(0, 0, 0, 0.65);
+          animation: mw-fade 0.2s ease both;
+        }
+        .mw-card {
+          width: 100%;
+          max-width: 460px;
+          padding: 22px;
+          border: 1px solid #2d2d2d;
+          border-radius: 14px;
+          background: #161616;
+          color: #ececec;
+          font: 13px/1.4 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+          animation: mw-pop 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        }
+        .mw-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 16px;
+        }
+        .mw-top h3 {
+          margin: 0;
+          font-size: 16px;
+          font-weight: 600;
+          color: #cfae2e;
+        }
+        .mw-close {
+          width: 30px;
+          height: 30px;
+          border: 0;
+          border-radius: 8px;
+          background: transparent;
+          color: #9a9a9a;
+          font-size: 22px;
+          line-height: 1;
+          cursor: pointer;
+        }
+        .mw-close:hover {
+          background: #242424;
+          color: #fff;
+        }
+        .mw-year {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 14px;
+          padding: 6px;
+          border-radius: 10px;
+          background: #1f1f1f;
+        }
+        .mw-year b {
+          font-size: 18px;
+        }
+        .mw-arrow {
+          width: 34px;
+          height: 32px;
+          border: 1px solid #2d2d2d;
+          border-radius: 8px;
+          background: #161616;
+          color: #ececec;
+          font-size: 18px;
+          cursor: pointer;
+        }
+        .mw-arrow:hover {
+          border-color: #cfae2e;
+        }
+        .mw-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 10px;
+        }
+        .mw-month {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 3px;
+          padding: 14px 6px;
+          border: 1px solid #2d2d2d;
+          border-radius: 10px;
+          background: #1f1f1f;
+          color: #ececec;
+          font: inherit;
+          cursor: pointer;
+          transition: border-color 0.15s, background-color 0.15s, transform 0.15s;
+        }
+        .mw-month:hover {
+          border-color: #cfae2e;
+          transform: translateY(-2px);
+        }
+        .mw-month:active {
+          transform: scale(0.96);
+        }
+        .mw-month:focus-visible,
+        .mw-close:focus-visible,
+        .mw-arrow:focus-visible,
+        .mw-today:focus-visible {
+          outline: 2px solid #cfae2e;
+          outline-offset: 2px;
+        }
+        .mw-name {
+          font-size: 14px;
+          font-weight: 600;
+        }
+        .mw-count {
+          font-size: 10px;
+          color: #9a9a9a;
+        }
+        .mw-month.today {
+          border-color: #cfae2e;
+        }
+        .mw-month.current {
+          background: #cfae2e;
+          border-color: #cfae2e;
+          color: #111;
+        }
+        .mw-month.current .mw-count {
+          color: #333;
+        }
+        .mw-foot {
+          display: flex;
+          justify-content: center;
+          margin-top: 16px;
+        }
+        .mw-today {
+          padding: 8px 18px;
+          border: 1px solid #2d2d2d;
+          border-radius: 8px;
+          background: transparent;
+          color: #cfae2e;
+          font: inherit;
+          cursor: pointer;
+        }
+        .mw-today:hover {
+          background: #1f1f1f;
+          border-color: #cfae2e;
+        }
+
+        @keyframes mw-fade {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes mw-pop {
+          from { opacity: 0; transform: translateY(14px) scale(0.96); }
+          to { opacity: 1; transform: none; }
+        }
+        @media (max-width: 480px) {
+          .mw-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .mw-backdrop, .mw-card { animation: none; }
+          .mw-month:hover { transform: none; }
+        }
+      `}</style>
     </StaffLayout>
   );
 }

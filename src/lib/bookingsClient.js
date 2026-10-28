@@ -11,8 +11,26 @@ export const BOOKING_TYPES = [
 
 export const money = (n) => `₱${Number(n || 0).toLocaleString("en-US")}`;
 
-export function dateParts(iso) {
+export function formatTime(t) {
+  if (!t || typeof t !== "string") return "";
+  const [h, m] = t.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return "";
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+}
+
+
+// Turns "2026-04-15" into [2026, 4, 15], or null if it isn't a usable date
+function parseIso(iso) {
+  if (!iso || typeof iso !== "string") return null;
   const [y, m, d] = iso.split("-").map(Number);
+  return y && m && d ? [y, m, d] : null;
+}
+
+export function dateParts(iso) {
+  const parsed = parseIso(iso);
+  if (!parsed) return { day: "—", month: "", full: "No date" };
+
+  const [y, m, d] = parsed;
   const date = new Date(y, m - 1, d);
 
   return {
@@ -27,7 +45,10 @@ export function dateParts(iso) {
 }
 
 export function formatDate(iso, month = "short") {
-  const [y, m, d] = iso.split("-").map(Number);
+  const parsed = parseIso(iso);
+  if (!parsed) return "—";
+
+  const [y, m, d] = parsed;
   return new Date(y, m - 1, d).toLocaleDateString("en-US", {
     month,
     day: "numeric",
@@ -41,6 +62,11 @@ export async function requestApi(url, method = "GET", body) {
     headers: { "Content-Type": "application/json" },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
+
+  // Session expired or logged out: go back to the staff login page
+  if (response.status === 401 && typeof window !== "undefined") {
+    window.location.href = "/staff/login";
+  }
 
   const data = await response.json().catch(() => ({}));
 

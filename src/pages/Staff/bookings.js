@@ -1,17 +1,18 @@
 import { Fragment, useMemo, useRef, useState } from "react";
 import StaffLayout from "../../components/StaffLayout";
-import BookingForm from "../../components/BookingForm";
+import BookingForm from "../../components/Bookingform";
 import s from "../../styles/StaffLayout.module.css";
 import useBookings from "../../lib/useBookings";
-import { STATUSES, formatDate, money } from "../../lib/bookingsClient";
+import { STATUSES, formatDate, formatTime, money } from "../../lib/bookingsClient";
+
+const dateOf = (b) => String(b?.date || "");
 
 const SORTS = {
-  soonest: { label: "Event date: soonest first", fn: (a, b) => a.date.localeCompare(b.date) || a.id - b.id },
-  latest: { label: "Event date: latest first", fn: (a, b) => b.date.localeCompare(a.date) || b.id - a.id },
+  soonest: { label: "Event date: soonest first", fn: (a, b) => dateOf(a).localeCompare(dateOf(b)) || a.id - b.id },
+  latest: { label: "Event date: latest first", fn: (a, b) => dateOf(b).localeCompare(dateOf(a)) || b.id - a.id },
   newest: { label: "Recently added", fn: (a, b) => b.id - a.id },
   amount: { label: "Amount: high to low", fn: (a, b) => b.amount - a.amount },
 };
-
 const cap = (text) => text.charAt(0).toUpperCase() + text.slice(1);
 
 export default function Bookings() {
