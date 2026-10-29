@@ -2,10 +2,15 @@ import { useState } from "react";
 import s from "../styles/StaffLayout.module.css";
 import { BOOKING_TYPES, STATUSES, money } from "../lib/bookingsClient";
 
+// Shown in the hint under the time field. The server enforces the real rule
+// (MIN_GAP_HOURS in api/staff/bookings.js), so change both together.
+const MIN_GAP_HOURS = 5;
+
 const emptyForm = {
   customer_id: "",
   package_id: "",
   date: "",
+  time: "",
   type: "",
   guests: "",
   amount: "",
@@ -22,6 +27,7 @@ export default function BookingForm({
   customers,
   packages = [],
   saving,
+  serverError = "",
   onSave,
   onCancel,
   onCreateCustomer,
@@ -32,6 +38,7 @@ export default function BookingForm({
           customer_id: String(booking.customer_id),
           package_id: booking.package_id ? String(booking.package_id) : "",
           date: booking.date,
+          time: booking.time || "",
           type: booking.type,
           guests: String(booking.guests),
           amount: String(booking.amount ?? ""),
@@ -130,6 +137,11 @@ export default function BookingForm({
       return;
     }
 
+    if (!form.time) {
+      setError("Please choose the event start time.");
+      return;
+    }
+
     if (!form.type.trim()) {
       setError("Please enter the event type.");
       return;
@@ -172,6 +184,7 @@ export default function BookingForm({
           ? selectedPackage?.name || booking?.package_name || ""
           : "",
         date: form.date,
+        time: form.time,
         type: form.type.trim(),
         guests,
         amount,
@@ -186,9 +199,9 @@ export default function BookingForm({
     <form className={s.formCard} onSubmit={submit}>
       <h3>{booking ? `Edit booking #${booking.id}` : "New booking"}</h3>
 
-      {error && (
+      {(error || serverError) && (
         <div className={s.messageError} role="alert">
-          {error}
+          {error || serverError}
         </div>
       )}
 
@@ -230,22 +243,22 @@ export default function BookingForm({
         </div>
 
         <div className={s.formField}>
-          <label className={s.formLabel} htmlFor={`${idPrefix}-status`}>
-            Status
+          <label className={s.formLabel} htmlFor={`${idPrefix}-time`}>
+            Start time
           </label>
 
-          <select
-            id={`${idPrefix}-status`}
+          <input
+            id={`${idPrefix}-time`}
             className={s.input}
-            value={form.status}
-            onChange={setField("status")}
-          >
-            {STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </option>
-            ))}
-          </select>
+            type="time"
+            step="900"
+            value={form.time}
+            onChange={setField("time")}
+          />
+
+          <span className={s.amountHint}>
+            Bookings on the same day must start at least {MIN_GAP_HOURS} hours apart.
+          </span>
         </div>
       </div>
 
@@ -403,6 +416,25 @@ export default function BookingForm({
               )}
             </span>
           )}
+        </div>
+
+        <div className={s.formField}>
+          <label className={s.formLabel} htmlFor={`${idPrefix}-status`}>
+            Status
+          </label>
+
+          <select
+            id={`${idPrefix}-status`}
+            className={s.input}
+            value={form.status}
+            onChange={setField("status")}
+          >
+            {STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

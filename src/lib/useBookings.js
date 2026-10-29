@@ -70,7 +70,8 @@ export default function useBookings() {
   async function removeBooking(booking) {
     if (
       !window.confirm(
-        `Delete booking #${booking.id} for ${booking.customer_name}?`
+        `Delete booking #${booking.id} for ${booking.customer_name}?\n\n` +
+          "If this is their only booking, the customer will also be removed from the Customers page."
       )
     ) {
       return false;
@@ -80,11 +81,15 @@ export default function useBookings() {
     setNotice("");
 
     try {
-      await requestApi(
+      const result = await requestApi(
         `/api/staff/bookings?id=${encodeURIComponent(booking.id)}`,
         "DELETE"
       );
-      setNotice("Booking deleted.");
+      setNotice(
+        result?.customerDeleted
+          ? "Booking deleted. The customer was removed too, since it was their only booking."
+          : "Booking deleted."
+      );
       await load(true);
       return true;
     } catch (err) {
@@ -104,6 +109,7 @@ export default function useBookings() {
         id: booking.id,
         customer_id: booking.customer_id,
         date: booking.date,
+        time: booking.time,
         type: booking.type,
         guests: booking.guests,
         amount: booking.amount,

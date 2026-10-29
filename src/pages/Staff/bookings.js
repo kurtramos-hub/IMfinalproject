@@ -3,7 +3,7 @@ import StaffLayout from "../../components/StaffLayout";
 import BookingForm from "../../components/Bookingform";
 import s from "../../styles/StaffLayout.module.css";
 import useBookings from "../../lib/useBookings";
-import { STATUSES, formatDate, formatTime, money } from "../../lib/bookingsClient";
+   import { STATUSES, formatDate, formatTime, money } from "../../lib/bookingsClient";
 
 const dateOf = (b) => String(b?.date || "");
 
@@ -265,7 +265,10 @@ export default function Bookings() {
                           <b>{b.customer_name}</b>
                           <small>{b.customer_email}</small>
                         </td>
-                        <td>{formatDate(b.date)}</td>
+                        <td>
+                            {formatDate(b.date)}
+                              <small>{formatTime(b.time)}</small>
+                                </td>
                         <td>
                           {b.type}
                           {b.package_name && <small>{b.package_name}</small>}

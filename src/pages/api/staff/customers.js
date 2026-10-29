@@ -1,6 +1,8 @@
 import { pool } from "../../../lib/bookingsDb";
 import { requireStaff } from "../../../lib/auth";
 
+class BlockedError extends Error {}
+
 const SELECT = `
   SELECT
     c.id,
@@ -34,6 +36,23 @@ function validate(body) {
 async function getOne(id) {
   const { rows } = await pool.query(`${SELECT} WHERE c.id = $1 ${GROUP}`, [id]);
   return rows[0];
+}
+
+// Same lock the bookings API uses, so a delete and a new booking can't collide
+async function withLock(work) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(7001)");
+    const result = await work(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 export default async function handler(req, res) {
@@ -91,20 +110,54 @@ export default async function handler(req, res) {
         return res.status(400).json({ message: "Customer id is required." });
       }
 
-      const deleted = await pool.query("DELETE FROM customers WHERE id = $1", [id]);
+      const result = await withLock(async (client) => {
+        const customer = await client.query(
+          "SELECT id FROM customers WHERE id = $1 FOR UPDATE",
+          [id]
+        );
+        if (customer.rowCount === 0) return null;
 
-      if (deleted.rowCount === 0) {
+        // Active bookings block the delete
+        const active = await client.query(
+          `SELECT COUNT(*)::int AS n
+             FROM bookings
+            WHERE customer_id = $1 AND status IN ('pending', 'confirmed')`,
+          [id]
+        );
+        if (active.rows[0].n > 0) {
+          const n = active.rows[0].n;
+          throw new BlockedError(
+            `This customer has pending or confirmed booking${n === 1 ? "" : "s"}. ` +
+              "Mark them as cancelled or completed first."
+          );
+        }
+
+        // Remove their finished bookings, then the customer
+        const removed = await client.query(
+          "DELETE FROM bookings WHERE customer_id = $1",
+          [id]
+        );
+        await client.query("DELETE FROM customers WHERE id = $1", [id]);
+
+        return { deletedBookings: removed.rowCount };
+      });
+
+      if (!result) {
         return res.status(404).json({ message: "Customer not found." });
       }
 
-      return res.status(200).json({ ok: true });
+      return res.status(200).json({ ok: true, deletedBookings: result.deletedBookings });
     }
 
     res.setHeader("Allow", "GET, POST, PUT, DELETE");
     return res.status(405).json({ message: "Method not allowed." });
   } catch (err) {
-    // bookings.customer_id uses ON DELETE RESTRICT
-    if (err.code === "23503") {
+    if (err instanceof BlockedError) {
+      return res.status(409).json({ message: err.message });
+    }
+
+    // 23503 / 23001: the database refused because bookings still reference the customer
+    if (err.code === "23503" || err.code === "23001") {
       return res.status(409).json({
         message:
           "This customer still has bookings. Delete those bookings first.",
