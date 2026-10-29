@@ -4,8 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import s from "../styles/StaffLayout.module.css";
 
-// Replace with the logged-in staff member later
-const USER = { name: "Admin User", email: "username@gmail.com" };
 
 const NAV = [
   { key: "dashboard", label: "Dashboard", icon: "home" },
@@ -51,6 +49,39 @@ let sidebarWasOpen = false;
 
 export default function StaffLayout({ active, title, subtitle, children }) {
   const router = useRouter();
+
+const [user, setUser] = useState(null);
+
+useEffect(() => {
+  let cancelled = false;
+
+  async function loadUser() {
+    try {
+      const res = await fetch("/api/staff/me");
+      if (res.status === 401) {
+        router.replace("/Staff/login");
+        return;
+      }
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+
+      if (!cancelled) {
+        setUser(data.user);
+      }
+    } catch (error) {
+      console.error("Failed to load logged-in user:", error);
+    }
+  }
+
+  loadUser();
+
+  return () => {
+    cancelled = true;
+  };
+}, [router]);
+
 
   // Keep the sidebar open while the mouse is on it, even across page changes
   const [held, setHeld] = useState(sidebarWasOpen);
@@ -141,7 +172,15 @@ export default function StaffLayout({ active, title, subtitle, children }) {
 
         <div className={s.spacer} />
         <hr className={s.rule} />
-        <div className={s.user}><b>{USER.name}</b><small>{USER.email}</small></div>
+        <div className={s.user}>
+          <b>{user?.name || "Loading account..."}</b>
+          <small>{user?.email || ""}</small>
+          {user?.role && (
+            <small className={s.userRole}>
+              {user.role.toLowerCase() === "admin" ? "Admin" : "Staff"}
+            </small>
+          )}
+        </div>
         <button type="button" className={s.item} onClick={logout} title="Log Out">
           <Icon name="logout" size={20} /><span className={s.label}>Log Out</span>
         </button>

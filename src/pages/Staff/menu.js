@@ -459,7 +459,7 @@ export default function Menu() {
     ? itemCounts[Number(selectedCategory.id)] || 0
     : 0;
 
-  return (
+      return (
     <StaffLayout
       active="menu"
       title="Menu"
@@ -487,10 +487,12 @@ export default function Menu() {
               <b>{packages.length}</b>
               <small>Packages</small>
             </div>
+
             <div className={s.menuSummaryItem}>
               <b>{categories.length}</b>
               <small>Categories</small>
             </div>
+
             <div className={s.menuSummaryItem}>
               <b>{menuItems.length}</b>
               <small>Menu items</small>
@@ -524,7 +526,7 @@ export default function Menu() {
             </button>
           </div>
 
-          {/* ================= CATERING PACKAGES ================= */}
+          {/* CATERING PACKAGES */}
           {tab === "packages" && (
             <section>
               <div className={s.menuToolbar}>
@@ -649,6 +651,7 @@ export default function Menu() {
                       <article key={pkg.id} className={s.pkgCard}>
                         <header className={s.pkgCardHead}>
                           <h3>{pkg.name}</h3>
+
                           <span className={s.pkgCount}>
                             {items.length} item{items.length === 1 ? "" : "s"}
                           </span>
@@ -659,6 +662,7 @@ export default function Menu() {
                           <span> per head</span>
                         </p>
 
+                                                
                         <details className={s.pkgDetails}>
                           <summary>View details</summary>
 
@@ -672,6 +676,7 @@ export default function Menu() {
                             <p className={s.muted}>No items listed.</p>
                           )}
                         </details>
+
 
                         <div className={s.cardActions}>
                           <button
@@ -697,6 +702,7 @@ export default function Menu() {
               ) : (
                 <div className={s.emptyCard}>
                   <p>No catering packages yet.</p>
+
                   {!showPackageForm && (
                     <button
                       type="button"
@@ -711,7 +717,7 @@ export default function Menu() {
             </section>
           )}
 
-          {/* ================= MENU ITEMS ================= */}
+          {/* MENU CATEGORIES */}
           {tab === "menu" && !selectedCategory && (
             <section>
               <div className={s.menuToolbar}>
@@ -777,47 +783,80 @@ export default function Menu() {
               )}
 
               {categories.length > 0 ? (
-                <div className={s.catGrid}>
-                  {categories.map((category) => {
-                    const count = itemCounts[Number(category.id)] || 0;
+                
+<div className={s.catGrid}>
+  {categories.map((category) => {
+    const categoryItems = menuItems.filter(
+      (item) => Number(item.category_id) === Number(category.id)
+    );
+    const count = categoryItems.length;
+    const previewItems = categoryItems.slice(0, 3);
 
-                    return (
-                      <div key={category.id} className={s.catCard}>
-                        <button
-                          type="button"
-                          className={s.catOpen}
-                          onClick={() => openCategory(category)}
-                        >
-                          <span className={s.catName}>{category.name}</span>
-                          <span className={s.catCount}>
-                            {count} item{count === 1 ? "" : "s"}
-                          </span>
-                        </button>
+    return (
+      <div key={category.id} className={s.catCard}>
+        <button
+          type="button"
+          className={s.catOpen}
+          onClick={() => openCategory(category)}
+          aria-label={`View all items in ${category.name} category`}
+        >
+          <span className={s.catName}>{category.name}</span>
 
-                        <div className={s.cardActions}>
-                          <button
-                            type="button"
-                            className={s.smallBtn}
-                            onClick={() => startEditCategory(category)}
-                          >
-                            Edit
-                          </button>
+          <span className={s.catDivider} aria-hidden="true">
+            <span />
+          </span>
 
-                          <button
-                            type="button"
-                            className={s.deleteBtn}
-                            onClick={() => deleteCategory(category)}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+          <span className={s.catCount}>
+            {count} menu item{count === 1 ? "" : "s"}
+          </span>
+
+          {previewItems.length > 0 ? (
+            <span className={s.catPreview}>
+              {previewItems.map((item) => (
+                <span className={s.catPreviewItem} key={item.id}>
+                  {item.name}
+                </span>
+              ))}
+
+              {count > 3 && (
+                <span className={s.catMoreItems}>
+                  +{count - 3} more
+                </span>
+              )}
+            </span>
+          ) : (
+            <span className={s.catHint}>No menu items yet</span>
+          )}
+
+          <span className={s.catHint}>View all items →</span>
+        </button>
+
+        <div className={s.cardActions}>
+          <button
+            type="button"
+            className={s.smallBtn}
+            onClick={() => startEditCategory(category)}
+          >
+            Edit
+          </button>
+
+          <button
+            type="button"
+            className={s.deleteBtn}
+            onClick={() => deleteCategory(category)}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    );
+  })}
+</div>
+
               ) : (
                 <div className={s.emptyCard}>
                   <p>No categories yet.</p>
+
                   {!showCategoryForm && (
                     <button
                       type="button"
@@ -832,7 +871,7 @@ export default function Menu() {
             </section>
           )}
 
-          {/* ================= CATEGORY DETAIL ================= */}
+          {/* CATEGORY DETAIL AND MENU ITEMS */}
           {tab === "menu" && selectedCategory && (
             <section>
               <button
@@ -845,6 +884,7 @@ export default function Menu() {
 
               <div className={s.detailHead}>
                 <h2 className={s.section}>{selectedCategory.name}</h2>
+
                 <span className={s.muted}>
                   {categoryItemTotal} item{categoryItemTotal === 1 ? "" : "s"}
                 </span>
@@ -930,10 +970,23 @@ export default function Menu() {
               )}
 
               {visibleItems.length > 0 ? (
-                <ul className={s.itemList}>
+                <div className={s.itemGrid}>
                   {visibleItems.map((item) => (
-                    <li key={item.id} className={s.itemRow}>
-                      <span className={s.itemName}>{item.name}</span>
+                    <article key={item.id} className={s.menuItemCard}>
+                      <div className={s.menuItemCardBody}>
+                        <h3 className={s.menuItemName}>{item.name}</h3>
+
+                        <span
+                          className={s.itemDivider}
+                          aria-hidden="true"
+                        >
+                          <span />
+                        </span>
+
+                        <p className={s.menuItemCategory}>
+                          {selectedCategory.name}
+                        </p>
+                      </div>
 
                       <div className={s.cardActions}>
                         <button
@@ -952,9 +1005,9 @@ export default function Menu() {
                           Delete
                         </button>
                       </div>
-                    </li>
+                    </article>
                   ))}
-                </ul>
+                </div>
               ) : (
                 <div className={s.emptyCard}>
                   <p>
