@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { useState } from "react";
 import AuthLayout, { Field, GoogleButton } from "../../components/AuthLayout";
 import styles from "../../styles/auth.module.css";
+import { getCustomerUser } from "../../lib/customerAuth";
 
 export default function Login() {
   const router = useRouter();
@@ -58,4 +59,13 @@ export default function Login() {
       </p>
     </AuthLayout>
   );
+}
+
+export async function getServerSideProps({ req }) {
+  const user = await getCustomerUser(req);
+
+  // Already logged in: go back to the landing page
+  if (user) return { redirect: { destination: "/", permanent: false } };
+
+  return { props: {} };
 }

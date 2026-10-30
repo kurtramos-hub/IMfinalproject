@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getCustomerUser } from "../lib/customerAuth";
 
 const menuCategories = [
   {
@@ -94,7 +95,50 @@ const packages = [
   { name: "SET C", price: 460 },
 ];
 
-export default function Home() {
+// Runs on the server for every visit, so the nav knows who is logged in
+export async function getServerSideProps({ req, res }) {
+  res.setHeader("Cache-Control", "private, no-store");
+
+  const user = await getCustomerUser(req);
+
+  return {
+    props: {
+      customer: user
+        ? { id: Number(user.id), name: user.name || "", email: user.email || "" }
+        : null,
+    },
+  };
+}
+
+// Profile icon: opens the profile page when a customer is logged in
+function ProfileMenu({ customer }) {
+  return (
+    <Link
+      href="/users/profile"
+      className="pm-btn"
+      aria-label="My profile"
+      title={customer.name}
+    >
+      <svg
+        width="26"
+        height="26"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="12" r="10" />
+        <circle cx="12" cy="10" r="3" />
+        <path d="M6.2 18.5c1.2-2.2 3.4-3.5 5.8-3.5s4.6 1.3 5.8 3.5" />
+      </svg>
+    </Link>
+  );
+}
+
+export default function Home({ customer }) {
   return (
     <main className="landing-page">
       <nav className="navbar">
@@ -111,9 +155,16 @@ export default function Home() {
 
         <div className="nav-right">
           <a href="#menu">MENU</a>
-          <a href="#about">ABOUT US</a>
-          <Link href="/Authentication/login" className="nav-login">LOG IN</Link>
-          <Link href="/Authentication/signup" className="nav-signup">SIGN UP</Link>
+          <a href="#contact">ABOUT US</a>
+
+          {customer ? (
+            <ProfileMenu customer={customer} />
+          ) : (
+            <>
+              <Link href="/Authentication/login" className="nav-login">LOG IN</Link>
+              <Link href="/Authentication/signup" className="nav-signup">SIGN UP</Link>
+            </>
+          )}
         </div>
       </nav>
 
@@ -135,7 +186,12 @@ export default function Home() {
             Making your special moments more memorable,
             one delicious dish at a time.
           </p>
-          <a href="/Authentication/login" className="book-button">
+
+          {/* Logged-in customers go to the packages for now; we'll point this at the booking form next */}
+                    <a
+            href={customer ? "/users/package" : "/Authentication/login"}
+            className="book-button"
+          >
             Book Now <span>↗</span>
           </a>
         </div>
@@ -245,6 +301,32 @@ export default function Home() {
           <p>No. 28 Bangus St., Brgy. Wilfredo Aquino.</p>
         </div>
       </footer>
+
+      <style jsx global>{`
+        .pm-btn {
+          display: inline-grid;
+          place-items: center;
+          width: 42px;
+          height: 42px;
+          border: 0;
+          border-radius: 50%;
+          background: transparent;
+          color: #d6b335;
+          text-decoration: none;
+          cursor: pointer;
+          transition: background-color 0.2s, transform 0.15s;
+        }
+        .pm-btn:hover {
+          background: rgba(214, 179, 53, 0.15);
+        }
+        .pm-btn:active {
+          transform: scale(0.94);
+        }
+        .pm-btn:focus-visible {
+          outline: 2px solid #d6b335;
+          outline-offset: 2px;
+        }
+      `}</style>
     </main>
   );
 }
